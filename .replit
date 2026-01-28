@@ -1,6 +1,5 @@
 run = "node test_full_flow.js"
 entrypoint = "test_full_flow.js"
-modules = ["nodejs-18", "nix"]
 
 [nix]
-channel = "stable-25_05"
+channel = "stable-22_11"
