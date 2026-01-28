@@ -1,98 +1,72 @@
 # Baokim B2B API - Node.js 18 Example
 
-Bộ source code mẫu để tích hợp với hệ thống B2B của Baokim, viết bằng Node.js 18.
+Bộ source code mẫu tích hợp Baokim B2B API, viết bằng Node.js 18 (native fetch, không dependencies).
 
 ## 🔧 Yêu cầu
-
-- **Node.js**: 18.0.0 trở lên (sử dụng native fetch)
-- Không cần cài đặt thêm dependencies
+- Node.js 18.0+
 
 ## 📦 Cài đặt
 
 ```bash
 git clone https://github.com/Mulligan1499/baokim-b2b-nodejs18-example.git
 cd nodejs18-b2b-example
-
-# Tạo config
 cp config/config.js config/config.local.js
-
-# Tạo private key
-# Copy private key vào keys/merchant_private.pem
+# Chỉnh sửa config.local.js với thông tin thực
 ```
 
 ## 🚀 Quick Start
 
-### Chạy test toàn bộ APIs
-
 ```bash
+# Test tất cả APIs
 node test_full_flow.js
-```
 
-### Test với refund
-
-```bash
+# Test với refund
 node test_full_flow.js ORDER_ID AMOUNT
 ```
 
-### Test với hủy thu hộ tự động
-
-```bash
-node test_full_flow.js ORDER_ID AMOUNT AUTO_DEBIT_TOKEN
-```
-
-## 📁 Cấu trúc thư mục
+## 📁 Cấu trúc
 
 ```
-nodejs18-b2b-example/
-├── config/
-│   ├── config.js              # Config mẫu
-│   └── config.local.js        # Config thực (không commit)
-├── src/
-│   ├── index.js               # Export modules
-│   ├── Config.js              # Quản lý config
-│   ├── Logger.js              # Ghi log
-│   ├── SignatureHelper.js     # Ký số RSA SHA256
-│   ├── HttpClient.js          # HTTP Client (native fetch)
-│   ├── BaokimAuth.js          # OAuth2 authentication
-│   ├── BaokimOrder.js         # Basic Pro APIs
-│   ├── BaokimVA.js            # VA Host to Host APIs
-│   └── ErrorCode.js           # Mapping mã lỗi
+├── config/                     # Cấu hình
+├── src/                        # Core modules
 ├── examples/
 │   ├── basic_pro/
-│   └── va_host_to_host/
+│   │   ├── 01_get_token.js
+│   │   ├── 02_create_order.js
+│   │   ├── 03_query_order.js
+│   │   ├── 04_refund_order.js
+│   │   └── 05_cancel_auto_debit.js
+│   ├── va_host_to_host/
+│   │   ├── 05_create_va.js
+│   │   ├── 06_update_va.js
+│   │   └── 07_query_transaction.js
+│   └── webhook_receiver.js
 ├── keys/                       # RSA Keys
 ├── logs/                       # Log files
-├── test_full_flow.js          # Test tất cả APIs
-└── package.json
+└── test_full_flow.js           # Test tất cả APIs
 ```
 
-## 📚 API Reference
+## 📚 APIs
 
-### Basic Pro APIs
+### Basic Pro
+| API | Endpoint |
+|-----|----------|
+| Lấy Token | `/b2b/auth-service/api/oauth/get-token` |
+| Tạo đơn | `/b2b/core/api/ext/mm/order/send` |
+| Tra cứu | `/b2b/core/api/ext/mm/order/get-order` |
+| Hoàn tiền | `/b2b/core/api/ext/mm/refund/send` |
+| Hủy thu hộ | `/b2b/core/api/ext/mm/autodebit/cancel` |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/b2b/auth-service/api/oauth/get-token` | POST | Lấy access token |
-| `/b2b/core/api/ext/mm/order/send` | POST | Tạo đơn hàng |
-| `/b2b/core/api/ext/mm/order/get-order` | POST | Tra cứu đơn hàng |
-| `/b2b/core/api/ext/mm/refund/send` | POST | Hoàn tiền |
-| `/b2b/core/api/ext/mm/autodebit/cancel` | POST | Hủy thu hộ tự động |
+### VA Host to Host
+| API | Endpoint |
+|-----|----------|
+| Tạo VA | `/b2b/core/api/ext/mm/bank-transfer/create` |
+| Cập nhật VA | `/b2b/core/api/ext/mm/bank-transfer/update` |
+| Tra cứu VA | `/b2b/core/api/ext/mm/bank-transfer/detail` |
 
-### VA Host to Host APIs
+## 🖥️ Replit
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/b2b/core/api/ext/mm/bank-transfer/create` | POST | Tạo VA |
-| `/b2b/core/api/ext/mm/bank-transfer/update` | POST | Cập nhật VA |
-| `/b2b/core/api/ext/mm/bank-transfer/detail` | POST | Tra cứu giao dịch |
-
-## 🖥️ Chạy trên Replit
-
-1. Import repo từ GitHub
-2. Tạo `config/config.local.js`
-3. Tạo `keys/merchant_private.pem`
-4. Click **Run**
+Import repo → Tạo `config/config.local.js` → Tạo `keys/merchant_private.pem` → Run
 
 ---
-
-© 2026 Baokim. All rights reserved.
+© 2026 Baokim
