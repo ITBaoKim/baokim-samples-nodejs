@@ -1,24 +1,24 @@
-# Node.js
-node_modules/
-
-# Config thực
-config/config.local.js
-
-# Keys
-keys/merchant_private.pem
-keys/baokim_public.pem
+# Nestjs specific
+/dist
+/node_modules
+/build
+/tmp
 
 # Logs
-logs/*.log
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
 
-# IDE
-.idea/
-.vscode/
+# dotenv environment variable files
+.env
+.env.development
+.env.test
+.env.production
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Temp
-*.tmp
-*.temp
+# temp directory
+.temp
+.tmp
