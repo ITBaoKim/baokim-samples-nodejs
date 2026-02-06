@@ -2,10 +2,10 @@
  * BaokimOrder - API đơn hàng (Basic Pro)
  */
 
-const Config = require('./Config');
-const HttpClient = require('./HttpClient');
-const SignatureHelper = require('./SignatureHelper');
-const ErrorCode = require('./ErrorCode');
+const Config = require('../Config');
+const HttpClient = require('../HttpClient');
+const SignatureHelper = require('../SignatureHelper');
+const ErrorCode = require('../ErrorCode');
 
 // Endpoints
 const ENDPOINT_CREATE_ORDER = '/b2b/core/api/ext/mm/order/send';

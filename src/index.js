@@ -9,7 +9,9 @@ module.exports = {
     SignatureHelper: require('./SignatureHelper'),
     HttpClient: require('./HttpClient'),
     BaokimAuth: require('./BaokimAuth'),
-    BaokimOrder: require('./BaokimOrder'),
-    BaokimVA: require('./BaokimVA'),
+    BaokimOrder: require('./MasterSub/BaokimOrder'),
+    BaokimVA: require('./HostToHost/BaokimVA'),
+    BaokimDirect: require('./Direct/BaokimDirect'),
     ErrorCode: require('./ErrorCode'),
 };
+

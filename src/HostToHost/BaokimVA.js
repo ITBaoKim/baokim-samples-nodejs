@@ -2,10 +2,10 @@
  * BaokimVA - API Virtual Account (Host to Host)
  */
 
-const Config = require('./Config');
-const HttpClient = require('./HttpClient');
-const SignatureHelper = require('./SignatureHelper');
-const ErrorCode = require('./ErrorCode');
+const Config = require('../Config');
+const HttpClient = require('../HttpClient');
+const SignatureHelper = require('../SignatureHelper');
+const ErrorCode = require('../ErrorCode');
 
 // Endpoints
 const ENDPOINT_CREATE_VA = '/b2b/core/api/ext/mm/bank-transfer/create';
@@ -67,32 +67,51 @@ class BaokimVA {
      * @returns {Promise<object>}
      */
     async createDynamicVA(accName, mrcOrderId, amount, description = '') {
-        return this.createVA({
+        const vaData = {
             accName,
             mrcOrderId,
             accType: VA_TYPE.DYNAMIC,
             collectAmountMin: amount,
             collectAmountMax: amount,
-            description,
             extra: {}
-        });
+        };
+
+        // Chỉ thêm description nếu có giá trị (fix signature error)
+        if (description) {
+            vaData.description = description;
+        }
+
+        return this.createVA(vaData);
     }
 
     /**
      * Tạo Static VA (VA tĩnh - nhiều lần dùng)
      * @param {string} accName 
      * @param {string} mrcOrderId 
+     * @param {string} expireDate - Format: YYYY-MM-DD HH:mm:ss
+     * @param {number} collectAmountMin - Số tiền tối thiểu
+     * @param {number} collectAmountMax - Số tiền tối đa
      * @param {string} description 
      * @returns {Promise<object>}
      */
-    async createStaticVA(accName, mrcOrderId, description = '') {
-        return this.createVA({
+    async createStaticVA(accName, mrcOrderId, expireDate, collectAmountMin = 10000, collectAmountMax = 10000000, description = '') {
+        const vaData = {
             accName,
             mrcOrderId,
             accType: VA_TYPE.STATIC,
-            description,
-            extra: {}
-        });
+            collectAmountMin,
+            collectAmountMax,
+            extra: {
+                expire_date: expireDate
+            }
+        };
+
+        // Chỉ thêm description nếu có giá trị
+        if (description) {
+            vaData.description = description;
+        }
+
+        return this.createVA(vaData);
     }
 
     /**

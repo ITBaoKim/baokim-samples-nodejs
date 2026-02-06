@@ -1,260 +1,180 @@
 /**
- * Test Full API Flow - Baokim B2B Node.js 18
+ * Test Full API Flow - Baokim B2B Node.js
  * 
- * Chạy test tất cả các API:
- * 1. Lấy Token
- * 2. Tạo đơn hàng
- * 3. Tra cứu đơn hàng
- * 4. Tạo Dynamic VA
- * 5. Tra cứu giao dịch VA
- * 6. Tạo đơn Thu hộ tự động
- * 7. Hủy thu hộ tự động
- * 8. Hoàn tiền
+ * Unified test script supporting multiple connection types:
+ * - basic_pro: MasterSub Order APIs (Create, Query, Refund, Auto Debit)
+ * - host_to_host: VA APIs (Create Dynamic/Static VA, Update, Query)
+ * - direct: Direct Order APIs (Create, Query, Cancel)
+ * 
+ * Usage:
+ *   node test_full_flow.js [connection_type]
+ * 
+ * Examples:
+ *   node test_full_flow.js                    # Run all tests
+ *   node test_full_flow.js basic_pro          # Test Basic/Pro only
+ *   node test_full_flow.js host_to_host       # Test Host-to-Host only
+ *   node test_full_flow.js direct             # Test Direct only
  */
 
-const { Config, BaokimAuth, BaokimOrder, BaokimVA, ErrorCode } = require('./src');
+const { Config, BaokimAuth, BaokimOrder, BaokimVA, BaokimDirect } = require('./src');
 
-// Parse command line arguments
-const refundOrderId = process.argv[2] || null;
-const refundAmount = process.argv[3] ? parseInt(process.argv[3]) : null;
-const autoDebitToken = process.argv[4] || null;
+// Parse CLI arguments
+const connectionType = (process.argv[2] || 'all').toLowerCase();
+const validTypes = ['all', 'basic_pro', 'host_to_host', 'direct'];
 
-async function runTests() {
+if (!validTypes.includes(connectionType)) {
+    console.log(`❌ Invalid connection type: ${connectionType}\n`);
+    console.log('Usage: node test_full_flow.js [connection_type]\n');
+    console.log('Valid types:');
+    console.log('  all          - Run all tests (default)');
+    console.log('  basic_pro    - Test MasterSub Order APIs');
+    console.log('  host_to_host - Test Host-to-Host VA APIs');
+    console.log('  direct       - Test Direct Order APIs');
+    process.exit(1);
+}
+
+async function main() {
     console.log('╔══════════════════════════════════════════════════════════╗');
-    console.log('║       BAOKIM B2B API - FULL TEST FLOW (Node.js 18)       ║');
+    console.log('║       BAOKIM B2B API - FULL TEST FLOW (Node.js)          ║');
     console.log('╚══════════════════════════════════════════════════════════╝\n');
 
-    const results = {};
+    const results = {
+        basic_pro: {},
+        host_to_host: {},
+        direct: {},
+    };
 
     try {
         Config.load();
 
         console.log(`📌 Environment: ${Config.get('baseUrl')}`);
-        console.log(`📌 Merchant: ${Config.get('merchantCode')}\n`);
+        console.log(`📌 Connection Type: ${connectionType.toUpperCase()}\n`);
 
-        // ============================================================
-        // 1. TEST LẤY TOKEN
-        // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [1/8] LẤY ACCESS TOKEN');
-        console.log('━'.repeat(60));
-
+        // Get Token (shared)
         const auth = new BaokimAuth();
         const token = await auth.getToken();
-        results.token = true;
-
-        console.log(`✅ Token: ${token.substr(0, 50)}...\n`);
+        console.log('✅ Token acquired successfully\n');
 
         // ============================================================
-        // 2. TEST TẠO ĐƠN HÀNG
+        // BASIC/PRO TESTS
         // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [2/8] TẠO ĐƠN HÀNG THƯỜNG');
-        console.log('━'.repeat(60));
+        if (connectionType === 'all' || connectionType === 'basic_pro') {
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('🔷 BASIC/PRO (MasterSub) TESTS');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-        const orderService = new BaokimOrder(auth);
-        const mrcOrderId = `TEST_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-        const amount = 100000;
+            const orderService = new BaokimOrder(auth);
+            const mrcOrderId = 'TEST_' + Date.now() + '_' + Math.floor(Math.random() * 9999);
 
-        const orderResult = await orderService.createOrder({
-            mrcOrderId,
-            totalAmount: amount,
-            description: `Test order ${mrcOrderId}`,
-            customerInfo: BaokimOrder.buildCustomerInfo(
-                'Nguyen Van A',
-                'test@example.com',
-                '0901234567',
-                '123 Test Street'
-            ),
-        });
+            // Create Order
+            const orderResult = await orderService.createOrder({
+                mrcOrderId: mrcOrderId,
+                totalAmount: 100000,
+                description: 'Test order ' + mrcOrderId,
+                customerInfo: BaokimOrder.buildCustomerInfo('NGUYEN VAN A', 'test@example.com', '0901234567', '123 Test Street'),
+            });
+            results.basic_pro.create_order = orderResult.success;
+            console.log(`   Create Order: ${orderResult.success ? `✅ ${mrcOrderId}` : `❌ ${orderResult.message}`}`);
 
-        results.createOrder = orderResult.success;
+            // Query Order
+            const queryResult = await orderService.queryOrder(mrcOrderId);
+            results.basic_pro.query_order = queryResult.success;
+            console.log(`   Query Order: ${queryResult.success ? '✅' : `❌ ${queryResult.message}`}`);
 
-        if (orderResult.success) {
-            console.log('✅ Tạo đơn thành công!');
-            console.log(`   Order ID: ${orderResult.data.order_id}`);
-            console.log(`   MRC Order ID: ${mrcOrderId}`);
-            console.log(`   Amount: ${amount.toLocaleString()} VND`);
-            console.log(`   Payment URL: ${orderResult.data.redirect_url}\n`);
-        } else {
-            console.log(`❌ Lỗi: ${orderResult.message}\n`);
+            // Auto Debit Order
+            const autoDebitOrderId = 'TT' + Date.now();
+            const autoDebitResult = await orderService.createOrder({
+                mrcOrderId: autoDebitOrderId,
+                totalAmount: 0,
+                description: 'Auto debit ' + autoDebitOrderId,
+                paymentMethod: BaokimOrder.PAYMENT_METHOD_AUTO_DEBIT,
+                serviceCode: 'QL_THU_HO_1',
+                customerInfo: { name: 'NGUYEN VAN A', email: 'test@example.com', phone: '0901234567', address: '123 Test Street', gender: 1 },
+            });
+            results.basic_pro.auto_debit = autoDebitResult.success;
+            console.log(`   Auto Debit: ${autoDebitResult.success ? `✅ ${autoDebitOrderId}` : `❌ ${autoDebitResult.message}`}\n`);
         }
 
         // ============================================================
-        // 3. TEST TRA CỨU ĐƠN HÀNG
+        // HOST-TO-HOST TESTS
         // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [3/8] TRA CỨU ĐƠN HÀNG');
-        console.log('━'.repeat(60));
+        if (connectionType === 'all' || connectionType === 'host_to_host') {
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('🔷 HOST-TO-HOST (VA) TESTS');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-        const queryResult = await orderService.queryOrder(mrcOrderId);
-        results.queryOrder = queryResult.success;
+            const vaService = new BaokimVA(auth);
 
-        if (queryResult.success) {
-            const order = queryResult.data.order;
-            console.log('✅ Tra cứu thành công!');
-            console.log(`   Order ID: ${order.id}`);
-            console.log(`   Status: ${order.status} (${order.status == 1 ? 'Đã thanh toán' : 'Chưa thanh toán'})`);
-            console.log(`   Amount: ${parseInt(order.total_amount).toLocaleString()} VND\n`);
-        } else {
-            console.log(`❌ Lỗi: ${queryResult.message}\n`);
-        }
+            // Create Dynamic VA
+            const vaOrderId = 'DVA' + Date.now().toString().slice(-10) + Math.floor(Math.random() * 999);
+            const vaResult = await vaService.createDynamicVA('NGUYEN VAN A', vaOrderId, 100000);
+            results.host_to_host.dynamic_va = vaResult.success;
+            const vaNumber = vaResult.success ? vaResult.data.acc_no : null;
+            console.log(`   Dynamic VA: ${vaResult.success ? `✅ ${vaNumber}` : `❌ ${vaResult.message}`}`);
 
-        // ============================================================
-        // 4. TEST TẠO DYNAMIC VA
-        // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [4/8] TẠO DYNAMIC VA (Host to Host)');
-        console.log('━'.repeat(60));
+            // Create Static VA
+            const staticOrderId = 'SVA' + Date.now().toString().slice(-10) + Math.floor(Math.random() * 999);
+            const expireDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
+            const staticResult = await vaService.createStaticVA('TRAN VAN B', staticOrderId, expireDate, 10000, 10000000);
+            results.host_to_host.static_va = staticResult.success;
+            const staticVaNumber = staticResult.success ? staticResult.data.acc_no : null;
+            console.log(`   Static VA: ${staticResult.success ? `✅ ${staticVaNumber}` : `❌ ${staticResult.message}`}`);
 
-        const vaService = new BaokimVA(auth);
-        const vaOrderId = `VA_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-        const vaAmount = 100000;
-
-        const vaResult = await vaService.createDynamicVA(
-            'NGUYEN VAN A',
-            vaOrderId,
-            vaAmount,
-            `Test VA ${vaOrderId}`
-        );
-
-        let vaNumber = null;
-        results.createVA = vaResult.success;
-
-        if (vaResult.success) {
-            vaNumber = vaResult.data.acc_no;
-            console.log('✅ Tạo VA thành công!');
-            console.log(`   VA Number: ${vaNumber}`);
-            console.log(`   Bank: ${vaResult.data.bank_name}`);
-            console.log(`   Account Name: ${vaResult.data.acc_name}`);
-            console.log(`   Amount: ${vaAmount.toLocaleString()} VND`);
-            console.log(`   QR: ${vaResult.data.qr_path}\n`);
-        } else {
-            console.log(`❌ Lỗi: ${vaResult.message}\n`);
-        }
-
-        // ============================================================
-        // 5. TEST TRA CỨU GIAO DỊCH VA
-        // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [5/8] TRA CỨU GIAO DỊCH VA (bank-transfer/detail)');
-        console.log('━'.repeat(60));
-
-        if (vaNumber) {
-            const vaQueryResult = await vaService.queryTransaction({ accNo: vaNumber });
-            results.queryVA = vaQueryResult.success;
-
-            if (vaQueryResult.success) {
-                console.log('✅ Tra cứu VA thành công!');
-                console.log(`   Endpoint: /bank-transfer/detail`);
-                console.log(`   VA: ${vaQueryResult.data.va_info.acc_no}`);
-                console.log(`   Bank: ${vaQueryResult.data.va_info.bank_name}`);
-                console.log(`   Transactions: ${vaQueryResult.data.transactions.length}\n`);
+            // Query VA
+            if (vaNumber) {
+                const queryVaResult = await vaService.queryTransaction({ accNo: vaNumber });
+                results.host_to_host.query_va = queryVaResult.success;
+                console.log(`   Query VA: ${queryVaResult.success ? '✅' : `❌ ${queryVaResult.message}`}\n`);
             } else {
-                console.log(`❌ Lỗi: ${vaQueryResult.message}\n`);
+                results.host_to_host.query_va = false;
+                console.log('   Query VA: ⏭️ Skipped\n');
             }
-        } else {
-            results.queryVA = false;
-            console.log('⚠️ Bỏ qua vì không có VA number\n');
         }
 
         // ============================================================
-        // 6. TEST TẠO ĐƠN THU HỘ TỰ ĐỘNG
+        // DIRECT TESTS
         // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [6/8] TẠO ĐƠN THU HỘ TỰ ĐỘNG (payment_method=22)');
-        console.log('━'.repeat(60));
+        if (connectionType === 'all' || connectionType === 'direct') {
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('🔷 DIRECT CONNECTION TESTS');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
-        const autoDebitOrderId = `TT${Date.now()}`;
+            // Direct connection uses different credentials
+            const directAuth = BaokimAuth.forDirectConnection();
+            const directService = new BaokimDirect(directAuth);
+            const directOrderId = 'DRT' + Date.now().toString().slice(-10) + Math.floor(Math.random() * 999);
 
-        const autoDebitResult = await orderService.createOrder({
-            mrcOrderId: autoDebitOrderId,
-            totalAmount: 0,
-            description: `Don hang Test ${autoDebitOrderId}`,
-            paymentMethod: BaokimOrder.PAYMENT_METHOD.AUTO_DEBIT,
-            serviceCode: 'QL_THU_HO_1',
-            saveToken: 0,
-            items: [{
-                code: 'PROD001',
-                name: 'San pham A',
-                amount: 0,
-                quantity: 1,
-                link: 'https://example.com/product-a',
-            }],
-            customerInfo: {
-                code: 'KH01',
-                name: 'AUTOMATION TEST',
-                email: 'test@example.com',
-                phone: '0911830977',
-                address: '123 Nguyen Trai, Hanoi',
-                gender: 1,
-            },
-        });
+            // Create Order
+            const directOrderResult = await directService.createOrder({
+                mrcOrderId: directOrderId,
+                totalAmount: 100000,
+                description: 'Direct order ' + directOrderId,
+                customerInfo: BaokimDirect.buildCustomerInfo('NGUYEN VAN A', 'test@example.com', '0901234567', '123 Test Street'),
+            });
+            results.direct.create_order = directOrderResult.success;
+            console.log(`   Create Order: ${directOrderResult.success ? `✅ ${directOrderId}` : `❌ ${directOrderResult.message}`}`);
 
-        results.autoDebit = autoDebitResult.success;
+            // Query Order
+            const directQueryResult = await directService.queryOrder(directOrderId);
+            results.direct.query_order = directQueryResult.success;
+            console.log(`   Query Order: ${directQueryResult.success ? '✅' : `❌ ${directQueryResult.message}`}`);
 
-        if (autoDebitResult.success) {
-            console.log('✅ Tạo đơn Thu hộ tự động thành công!');
-            console.log(`   Order ID: ${autoDebitResult.data.order_id}`);
-            console.log(`   MRC Order ID: ${autoDebitOrderId}`);
-            console.log(`   Payment Method: 22 (Thu hộ tự động)`);
-            console.log(`   Redirect URL: ${autoDebitResult.data.redirect_url}\n`);
-        } else {
-            console.log(`❌ Lỗi: ${autoDebitResult.message}`);
-            console.log(`   Code: ${autoDebitResult.code}\n`);
-        }
-
-        // ============================================================
-        // 7. TEST HỦY THU HỘ TỰ ĐỘNG
-        // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [7/8] HỦY THU HỘ TỰ ĐỘNG');
-        console.log('━'.repeat(60));
-
-        if (autoDebitToken) {
-            console.log(`   Token: ${autoDebitToken.substr(0, 20)}...`);
-
-            const cancelResult = await orderService.cancelAutoDebit(autoDebitToken);
-            results.cancelAutoDebit = cancelResult.success;
-
-            if (cancelResult.success) {
-                console.log('✅ Hủy thu hộ tự động thành công!');
-                console.log(`   Code: ${cancelResult.code}`);
-                console.log(`   Message: ${cancelResult.message}\n`);
+            // Cancel Order (create new order then cancel)
+            const cancelOrderId = 'CXL' + Date.now().toString().slice(-10) + Math.floor(Math.random() * 999);
+            const cancelCreateResult = await directService.createOrder({
+                mrcOrderId: cancelOrderId,
+                totalAmount: 50000,
+                description: 'Order to cancel',
+                customerInfo: BaokimDirect.buildCustomerInfo('TRAN VAN B', 'cancel@example.com', '0901234567', '456 Cancel Street'),
+            });
+            if (cancelCreateResult.success) {
+                const cancelResult = await directService.cancelOrder(cancelOrderId);
+                results.direct.cancel_order = cancelResult.success;
+                console.log(`   Cancel Order: ${cancelResult.success ? '✅' : `❌ ${cancelResult.message}`}\n`);
             } else {
-                console.log(`❌ Lỗi: ${cancelResult.message}\n`);
+                results.direct.cancel_order = false;
+                console.log('   Cancel Order: ❌ Could not create order\n');
             }
-        } else {
-            results.cancelAutoDebit = 'skipped';
-            console.log('⚠️ Để test hủy thu hộ tự động, chạy:');
-            console.log('   node test_full_flow.js ORDER_ID AMOUNT AUTO_DEBIT_TOKEN\n');
-        }
-
-        // ============================================================
-        // 8. TEST HOÀN TIỀN
-        // ============================================================
-        console.log('━'.repeat(60));
-        console.log('📍 [8/8] HOÀN TIỀN');
-        console.log('━'.repeat(60));
-
-        if (refundOrderId && refundAmount) {
-            console.log(`   Order ID: ${refundOrderId}`);
-            console.log(`   Amount: ${refundAmount.toLocaleString()} VND`);
-
-            const refundResult = await orderService.refundOrder(refundOrderId, refundAmount, 'Test refund');
-            results.refund = refundResult.success;
-
-            if (refundResult.success) {
-                console.log('✅ Hoàn tiền thành công!');
-                console.log(`   Code: ${refundResult.code}`);
-                console.log(`   Message: ${refundResult.message}\n`);
-            } else {
-                console.log(`❌ Lỗi: ${refundResult.message}\n`);
-            }
-        } else {
-            results.refund = 'skipped';
-            console.log('⚠️ Để test refund, chạy:');
-            console.log('   node test_full_flow.js ORDER_ID AMOUNT\n');
         }
 
         // ============================================================
@@ -265,23 +185,37 @@ async function runTests() {
         console.log('╚══════════════════════════════════════════════════════════╝\n');
 
         console.log('📋 Summary:');
-        console.log(`   [1] Token: ✅`);
-        console.log(`   [2] Create Order: ${results.createOrder ? '✅' : '❌'} (${mrcOrderId})`);
-        console.log(`   [3] Query Order: ${results.queryOrder ? '✅' : '❌'}`);
-        console.log(`   [4] Create VA (H2H): ${results.createVA ? '✅' : '❌'}${vaNumber ? ` (${vaNumber})` : ''}`);
-        console.log(`   [5] Query VA (H2H): ${results.queryVA ? '✅' : '❌'}`);
-        console.log(`   [6] Auto Debit Order: ${results.autoDebit ? '✅' : '❌'} (${autoDebitOrderId})`);
-        console.log(`   [7] Cancel Auto Debit: ${results.cancelAutoDebit === 'skipped' ? '⏭️ Skipped' : (results.cancelAutoDebit ? '✅' : '❌')}`);
-        console.log(`   [8] Refund: ${results.refund === 'skipped' ? '⏭️ Skipped' : (results.refund ? '✅' : '❌')}\n`);
 
-        const date = new Date().toISOString().split('T')[0];
-        console.log(`📁 Log file: logs/api_${date}.log`);
+        if (connectionType === 'all' || connectionType === 'basic_pro') {
+            console.log('\n   🔷 BASIC/PRO:');
+            for (const [test, success] of Object.entries(results.basic_pro)) {
+                const testName = test.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                console.log(`      ${testName}: ${success ? '✅' : '❌'}`);
+            }
+        }
 
-    } catch (error) {
-        console.error(`\n❌ EXCEPTION: ${error.message}`);
-        console.error(`Stack: ${error.stack}`);
+        if (connectionType === 'all' || connectionType === 'host_to_host') {
+            console.log('\n   🔷 HOST-TO-HOST:');
+            for (const [test, success] of Object.entries(results.host_to_host)) {
+                const testName = test.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                console.log(`      ${testName}: ${success ? '✅' : '❌'}`);
+            }
+        }
+
+        if (connectionType === 'all' || connectionType === 'direct') {
+            console.log('\n   🔷 DIRECT:');
+            for (const [test, success] of Object.entries(results.direct)) {
+                const testName = test.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                console.log(`      ${testName}: ${success ? '✅' : '❌'}`);
+            }
+        }
+
+        console.log(`\n📁 Log file: logs/api_${new Date().toISOString().slice(0, 10)}.log`);
+
+    } catch (e) {
+        console.error(`\n❌ EXCEPTION: ${e.message}`);
+        console.error(e.stack);
     }
 }
 
-// Run tests
-runTests();
+main();

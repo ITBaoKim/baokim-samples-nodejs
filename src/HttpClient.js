@@ -25,6 +25,18 @@ class HttpClient {
     }
 
     /**
+     * Gửi request POST với JSON string đã encode sẵn
+     * Dùng cho trường hợp cần đảm bảo JSON gửi đi chính xác như đã ký
+     * @param {string} endpoint 
+     * @param {string} jsonBody - JSON string đã encode
+     * @param {object} headers 
+     * @returns {Promise<object>}
+     */
+    async postRaw(endpoint, jsonBody, headers = {}) {
+        return this.requestRaw('POST', endpoint, jsonBody, headers);
+    }
+
+    /**
      * Gửi request GET
      * @param {string} endpoint 
      * @param {object} headers 
@@ -49,6 +61,63 @@ class HttpClient {
 
         // Log request
         Logger.logRequest(method, url, headers, body);
+
+        const startTime = Date.now();
+
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+            const response = await fetch(url, {
+                method,
+                headers,
+                body: jsonBody,
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            const duration = Date.now() - startTime;
+            const responseData = await response.json();
+
+            // Log response
+            Logger.logResponse(response.status, responseData, duration);
+
+            return {
+                success: response.ok,
+                httpCode: response.status,
+                data: responseData,
+                error: response.ok ? null : this.extractError(responseData, response.status)
+            };
+
+        } catch (error) {
+            const duration = Date.now() - startTime;
+            Logger.error(`Request failed: ${error.message}`, { url, duration });
+
+            return {
+                success: false,
+                httpCode: 0,
+                data: null,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Gửi request với JSON string đã encode sẵn
+     * Đảm bảo JSON gửi đi chính xác như đã ký
+     */
+    async requestRaw(method, endpoint, jsonBody, customHeaders = {}) {
+        const url = this.buildUrl(endpoint);
+
+        const headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...customHeaders
+        };
+
+        // Log request
+        Logger.logRequest(method, url, headers, jsonBody);
 
         const startTime = Date.now();
 

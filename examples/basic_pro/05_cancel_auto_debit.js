@@ -1,17 +1,17 @@
 /**
- * Ví dụ 5: Hủy Thu Hộ Tự Động
+ * Example: Hủy thu hộ tự động (Cancel Auto Debit)
  */
 
-const { Config, BaokimAuth, BaokimOrder, ErrorCode } = require('../../src');
+const { Config, BaokimAuth, BaokimOrder } = require('../../src');
 
 async function main() {
-    console.log('=== Baokim B2B - Hủy Thu Hộ Tự Động ===\n');
+    const autoDebitToken = process.argv[2];
 
-    // Token từ webhook khi đăng ký thu hộ tự động thành công
-    const autoDebitToken = process.argv[2] || 'YOUR_AUTO_DEBIT_TOKEN';
-
-    console.log(`Token thu hộ tự động: ${autoDebitToken}`);
-    console.log('(Sử dụng: node 05_cancel_auto_debit.js YOUR_TOKEN)\n');
+    if (!autoDebitToken) {
+        console.log('Usage: node 05_cancel_auto_debit.js <auto_debit_token>');
+        console.log('Note: Token is received from webhook after customer setup auto debit');
+        return;
+    }
 
     try {
         Config.load();
@@ -19,31 +19,15 @@ async function main() {
         const auth = new BaokimAuth();
         const orderService = new BaokimOrder(auth);
 
-        console.log('Đang gọi API hủy thu hộ tự động...\n');
-
         const result = await orderService.cancelAutoDebit(autoDebitToken);
 
-        console.log('=== Kết quả ===');
-        console.log(`Success: ${result.success ? 'TRUE' : 'FALSE'}`);
-        console.log(`Code: ${result.code} - ${ErrorCode.getMessage(result.code)}`);
-        console.log(`Message: ${result.message}\n`);
-
         if (result.success) {
-            console.log('✓ Hủy thu hộ tự động thành công!');
-            if (result.data) {
-                console.log('\nChi tiết:');
-                console.log(JSON.stringify(result.data, null, 2));
-            }
+            console.log('✅ Hủy thu hộ tự động thành công!');
         } else {
-            console.log('✗ Hủy thu hộ tự động thất bại!');
-            console.log('Vui lòng kiểm tra lại token.');
+            console.log(`❌ Lỗi: ${result.message}`);
         }
-
-        console.log('\n=== HOÀN THÀNH ===');
-
     } catch (error) {
-        console.error('\n!!! LỖI !!!');
-        console.error(`Message: ${error.message}`);
+        console.error(`Error: ${error.message}`);
     }
 }
 

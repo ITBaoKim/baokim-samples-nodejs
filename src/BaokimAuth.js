@@ -9,10 +9,29 @@ const SignatureHelper = require('./SignatureHelper');
 const ENDPOINT_GET_TOKEN = '/b2b/auth-service/api/oauth/get-token';
 
 class BaokimAuth {
-    constructor() {
+    constructor(credentials = null) {
         this.httpClient = new HttpClient();
         this.token = null;
         this.tokenExpiresAt = null;
+
+        // Cho phép override credentials cho Direct connection
+        this.credentials = credentials || {
+            merchantCode: Config.get('masterMerchantCode'),
+            clientId: Config.get('clientId'),
+            clientSecret: Config.get('clientSecret')
+        };
+    }
+
+    /**
+     * Factory method cho Direct connection
+     * @returns {BaokimAuth}
+     */
+    static forDirectConnection() {
+        return new BaokimAuth({
+            merchantCode: Config.get('directMerchantCode') || Config.get('merchantCode'),
+            clientId: Config.get('directClientId') || Config.get('clientId'),
+            clientSecret: Config.get('directClientSecret') || Config.get('clientSecret')
+        });
     }
 
     /**
@@ -28,9 +47,9 @@ class BaokimAuth {
 
         // Gọi API lấy token mới
         const requestBody = {
-            merchant_code: Config.get('masterMerchantCode'),
-            client_id: Config.get('clientId'),
-            client_secret: Config.get('clientSecret')
+            merchant_code: this.credentials.merchantCode,
+            client_id: this.credentials.clientId,
+            client_secret: this.credentials.clientSecret
         };
 
         const jsonBody = JSON.stringify(requestBody);
@@ -80,3 +99,4 @@ class BaokimAuth {
 }
 
 module.exports = BaokimAuth;
+
