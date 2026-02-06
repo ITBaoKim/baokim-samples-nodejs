@@ -1,4 +1,4 @@
-# Baokim B2B API - Node.js 18 Example
+# Baokim B2B API - Node.js 18 Example 
 
 Bộ source code mẫu tích hợp Baokim B2B API, viết bằng Node.js 18+ (sử dụng native fetch).
 
