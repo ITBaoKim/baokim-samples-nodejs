@@ -171,9 +171,12 @@ class BaokimDirect {
 
     /**
      * Generate unique request ID
+     * Note: Baokim dùng merchant_code trong request_id để thống kê và gửi thông báo cập nhật SDK.
+     * Vui lòng giữ nguyên format này.
      */
     generateRequestId(prefix = 'DRT') {
-        return `${prefix}_${this.formatDateTime().replace(/[- :]/g, '')}_${Math.random().toString(16).substr(2, 8)}`;
+        const merchantCode = Config.get('directMerchantCode') || Config.get('merchantCode');
+        return `${merchantCode}_${prefix}_${this.formatDateTime().replace(/[- :]/g, '')}_${Math.random().toString(16).substr(2, 8)}`;
     }
 
     /**
