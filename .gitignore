@@ -1,3 +1,29 @@
+<<<<<<< HEAD
+# Node.js
+node_modules/
+
+# Config thực
+config/config.local.js
+
+# Keys
+keys/merchant_private.pem
+keys/baokim_public.pem
+
+# Logs
+logs/*.log
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temp
+*.tmp
+*.temp
+=======
 # Nestjs specific
 /dist
 /node_modules
@@ -22,3 +48,4 @@ lerna-debug.log*
 # temp directory
 .temp
 .tmp
+>>>>>>> 469f5d1fb8fd0f250e5dbf793a07afbb39c8796f
