@@ -18,7 +18,7 @@ async function main() {
         Config.load();
 
         const auth = new BaokimAuth();
-        const orderService = new BaokimOrder(auth);
+        const orderService = new BaokimOrder(await auth.getToken());
 
         const result = await orderService.refundOrder(mrcOrderId, amount, 'Hoàn tiền cho khách');
 

@@ -10,7 +10,7 @@ async function main() {
 
         // Sử dụng Direct credentials
         const auth = BaokimAuth.forDirectConnection();
-        const directService = new BaokimDirect(auth);
+        const directService = new BaokimDirect(await auth.getToken());
 
         const mrcOrderId = `DRT${new Date().toISOString().replace(/[-:T]/g, '').substr(2, 12)}${Math.floor(Math.random() * 1000)}`;
 

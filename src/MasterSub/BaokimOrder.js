@@ -21,8 +21,8 @@ const PAYMENT_METHOD = {
 };
 
 class BaokimOrder {
-    constructor(auth) {
-        this.auth = auth;
+    constructor(token) {
+        this.token = token;
         this.httpClient = new HttpClient();
     }
 
@@ -131,7 +131,7 @@ class BaokimOrder {
     async sendRequest(endpoint, requestBody) {
         const jsonBody = JSON.stringify(requestBody);
         const signature = SignatureHelper.sign(jsonBody);
-        const authHeader = await this.auth.getAuthorizationHeader();
+        const authHeader = 'Bearer ' + this.token;
 
         const response = await this.httpClient.post(endpoint, requestBody, {
             'Authorization': authHeader,

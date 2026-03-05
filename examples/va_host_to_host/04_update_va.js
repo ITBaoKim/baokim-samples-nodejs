@@ -16,7 +16,7 @@ async function main() {
         Config.load();
 
         const auth = new BaokimAuth();
-        const vaService = new BaokimVA(auth);
+        const vaService = new BaokimVA(await auth.getToken());
 
         // Ví dụ: cập nhật tên và số tiền collect
         const updateData = {

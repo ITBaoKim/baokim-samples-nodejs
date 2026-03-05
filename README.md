@@ -129,7 +129,7 @@ const { Config, BaokimAuth, BaokimOrder } = require('./baokim-sdk');
 Config.load();
 
 const auth = new BaokimAuth();
-const orderService = new BaokimOrder(auth);
+const orderService = new BaokimOrder(await auth.getToken());
 
 const mrcOrderId = 'ORDER_' + Date.now();
 
@@ -163,7 +163,7 @@ const { Config, BaokimAuth, BaokimOrder } = require('./baokim-sdk');
 Config.load();
 
 const auth = new BaokimAuth();
-const orderService = new BaokimOrder(auth);
+const orderService = new BaokimOrder(await auth.getToken());
 
 const mrcOrderId = process.argv[2] || 'ORDER_TEST';
 const result = await orderService.queryOrder(mrcOrderId);
@@ -186,7 +186,7 @@ const { Config, BaokimAuth, BaokimOrder } = require('./baokim-sdk');
 Config.load();
 
 const auth = new BaokimAuth();
-const orderService = new BaokimOrder(auth);
+const orderService = new BaokimOrder(await auth.getToken());
 
 const mrcOrderId = process.argv[2] || 'ORDER_TEST';
 const refundAmount = parseInt(process.argv[3]) || 0;
@@ -211,7 +211,7 @@ const { Config, BaokimAuth, BaokimVA } = require('./baokim-sdk');
 Config.load();
 
 const auth = new BaokimAuth();
-const vaService = new BaokimVA(auth);
+const vaService = new BaokimVA(await auth.getToken());
 
 const orderId = 'VA_' + Date.now();
 
@@ -242,7 +242,7 @@ const { Config, BaokimAuth, BaokimVA } = require('./baokim-sdk');
 Config.load();
 
 const auth = new BaokimAuth();
-const vaService = new BaokimVA(auth);
+const vaService = new BaokimVA(await auth.getToken());
 
 const result = await vaService.queryTransaction({
     accNo: '00812345678901',   // Thay bằng số VA thật từ API 5
@@ -269,7 +269,7 @@ Config.load();
 
 // Direct connection dùng credentials riêng
 const directAuth = BaokimAuth.forDirectConnection();
-const directService = new BaokimDirect(directAuth);
+const directService = new BaokimDirect(await directAuth.getToken());
 
 const mrcOrderId = 'DRT_' + Date.now();
 

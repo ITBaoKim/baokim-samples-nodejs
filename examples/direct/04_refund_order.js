@@ -18,7 +18,7 @@ async function main() {
         Config.load();
 
         const auth = BaokimAuth.forDirectConnection();
-        const directService = new BaokimDirect(auth);
+        const directService = new BaokimDirect(await auth.getToken());
 
         // Note: Direct connection refund sử dụng cùng method như Basic/Pro
         // nhưng cần implement thêm nếu API endpoint khác
