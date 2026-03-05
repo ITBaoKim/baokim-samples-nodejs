@@ -16,7 +16,7 @@ async function main() {
         Config.load();
 
         const auth = BaokimAuth.forDirectConnection();
-        const directService = new BaokimDirect(auth);
+        const directService = new BaokimDirect(await auth.getToken());
 
         const result = await directService.cancelOrder(mrcOrderId, 'Customer requested cancellation');
 
