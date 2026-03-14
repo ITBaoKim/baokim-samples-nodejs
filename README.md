@@ -52,7 +52,7 @@ your-project/
 Mở file `baokim-sdk/config/config.js` và điền thông tin Baokim cung cấp:
 ```javascript
 module.exports = {
-    baseUrl: 'https://devtest.baokim.vn',  // hoặc https://openapi.baokim.vn
+    baseUrl: 'https://devtest.baokim.vn',  // hoặc https://bws.baokim.vn
     timeout: 30000,
     
     merchantCode: 'YOUR_MERCHANT_CODE',
@@ -75,7 +75,7 @@ module.exports = {
 
 > [!IMPORTANT]
 > **Lưu ý lên môi trường Production:**
-> - Thay `baseUrl` thành `https://openapi.baokim.vn`.
+> - Thay `baseUrl` thành `https://bws.baokim.vn`.
 > - Thay đổi các thông tin `merchantCode`, `clientId`, `clientSecret` sang thông tin môi trường Production do Baokim cung cấp.
 > - Cập nhật cặp RSA Keys (Private Key của Merchant và Public Key của Baokim) tương ứng với môi trường Production.
 
