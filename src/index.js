@@ -12,6 +12,7 @@ module.exports = {
     BaokimOrder: require('./MasterSub/BaokimOrder'),
     BaokimVA: require('./HostToHost/BaokimVA'),
     BaokimDirect: require('./Direct/BaokimDirect'),
+    BaokimMerchantVA: require('./MerchantHosted/BaokimMerchantVA'),
     ErrorCode: require('./ErrorCode'),
 };
 

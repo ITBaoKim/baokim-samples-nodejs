@@ -39,8 +39,10 @@ your-project/
 │   │   └── BaokimOrder.js
 │   ├── HostToHost/
 │   │   └── BaokimVA.js
-│   └── Direct/
-│       └── BaokimDirect.js
+│   ├── Direct/
+│   │   └── BaokimDirect.js
+│   └── MerchantHosted/
+│       └── BaokimMerchantVA.js
 ├── logs/                  # Thư mục log (tự tạo)
 └── your-code.js
 ```
@@ -70,6 +72,12 @@ module.exports = {
     webhookUrl: 'https://your-domain.com/webhook/baokim',
 };
 ```
+
+> [!IMPORTANT]
+> **Lưu ý lên môi trường Production:**
+> - Thay `baseUrl` thành `https://openapi.baokim.vn`.
+> - Thay đổi các thông tin `merchantCode`, `clientId`, `clientSecret` sang thông tin môi trường Production do Baokim cung cấp.
+> - Cập nhật cặp RSA Keys (Private Key của Merchant và Public Key của Baokim) tương ứng với môi trường Production.
 
 ### Bước 4: Đặt RSA Keys
 
@@ -327,6 +335,123 @@ node 07_direct_order.js
 
 ---
 
+## 🔷 API 9: Tạo Virtual Account - VA (Merchant Hosted / Direct)
+
+> ⚠️ Merchant Hosted dùng credentials riêng (`directClientId`, `directClientSecret`).
+> Khác với Host-to-Host (Master/Sub), Merchant Hosted dùng `merchantCode` thay vì `masterMerchantCode` + `subMerchantCode`.
+
+```javascript
+const { Config, BaokimAuth, BaokimMerchantVA } = require('./baokim-sdk');
+
+async function main() {
+    Config.load();
+
+    const directAuth = BaokimAuth.forDirectConnection();
+    const vaService = new BaokimMerchantVA(await directAuth.getToken());
+
+    const orderId = 'MH_VA_' + Date.now();
+
+    const result = await vaService.createDynamicVA(
+        'NGUYEN VAN A',    // Tên khách hàng
+        orderId,           // Mã đơn hàng
+        100000             // Số tiền
+    );
+
+    console.log('Success:', result.success);
+    if (result.success && result.data.acc_no) {
+        console.log('Số VA:', result.data.acc_no);
+    }
+    console.log(result);
+}
+
+main();
+```
+
+### Tạo VA với đầy đủ options
+
+```javascript
+const result = await vaService.createVA({
+    accName: 'NGUYEN VAN A',
+    accType: 1,                    // 1=Dynamic, 2=Static
+    mrcOrderId: 'ORDER_001',
+    collectAmountMin: 100000,      // Required khi accType=1
+    collectAmountMax: 100000,      // Required
+    storeCode: 'STORE_001',        // Optional
+    staffCode: 'STAFF_001',        // Optional
+    bankCode: 'BIDV',              // Optional
+    memo: 'Ghi chú',               // Optional (max 255)
+    expireDate: '2026-12-31 23:59:59', // Required khi accType=2
+});
+```
+
+```bash
+node examples/va_merchant_hosted/08_merchant_create_va.js
+```
+
+---
+
+## 🔷 API 10: Cập nhật VA (Merchant Hosted)
+
+```javascript
+const { Config, BaokimAuth, BaokimMerchantVA } = require('./baokim-sdk');
+
+async function main() {
+    Config.load();
+
+    const directAuth = BaokimAuth.forDirectConnection();
+    const vaService = new BaokimMerchantVA(await directAuth.getToken());
+
+    const result = await vaService.updateVA('ORDER_001', {
+        accName: 'NGUYEN VAN B',            // Optional
+        collectAmountMin: 50000,             // Optional
+        collectAmountMax: 500000,            // Optional
+        expireDate: '2027-06-30 23:59:59',   // Optional
+    });
+
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
+```
+
+```bash
+node examples/va_merchant_hosted/09_merchant_update_va.js ORDER_001
+```
+
+---
+
+## 🔷 API 11: Tra cứu chi tiết VA (Merchant Hosted)
+
+```javascript
+const { Config, BaokimAuth, BaokimMerchantVA } = require('./baokim-sdk');
+
+async function main() {
+    Config.load();
+
+    const directAuth = BaokimAuth.forDirectConnection();
+    const vaService = new BaokimMerchantVA(await directAuth.getToken());
+
+    const result = await vaService.detailVA('00812345678901', {
+        startDate: '2026-01-01 00:00:00',    // Optional
+        endDate: '2026-12-31 23:59:59',      // Optional
+        currentPage: 1,                       // Optional
+        perPage: 20,                          // Optional
+    });
+
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
+```
+
+```bash
+node examples/va_merchant_hosted/10_merchant_detail_va.js 00812345678901
+```
+
+---
+
 ## 🔷 API 8: Xử lý Webhook từ Baokim (Verify Signature)
 
 Khi có giao dịch thành công (thanh toán, hoàn tiền, VA...), **Baokim sẽ gửi HTTP POST** đến webhook URL của merchant.
@@ -416,6 +541,13 @@ Merchant cần trả về JSON với `code = 0` khi xử lý thành công:
 | Tạo VA | `/b2b/core/api/ext/mm/bank-transfer/create` |
 | Cập nhật VA | `/b2b/core/api/ext/mm/bank-transfer/update` |
 | Tra cứu VA | `/b2b/core/api/ext/mm/bank-transfer/detail` |
+
+### VA Merchant Hosted (Direct)
+| API | Endpoint |
+|-----|----------|
+| Tạo VA | `/b2b/core/api/merchant-hosted/bank-transfer/create` |
+| Cập nhật VA | `/b2b/core/api/merchant-hosted/bank-transfer/update` |
+| Tra cứu VA | `/b2b/core/api/merchant-hosted/bank-transfer/detail` |
 
 ### Direct Connection
 | API | Endpoint |
