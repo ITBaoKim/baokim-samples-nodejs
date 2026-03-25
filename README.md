@@ -39,8 +39,10 @@ your-project/
 │   │   └── BaokimOrder.js
 │   ├── HostToHost/
 │   │   └── BaokimVA.js
-│   └── Direct/
-│       └── BaokimDirect.js
+│   ├── Direct/
+│   │   └── BaokimDirect.js
+│   └── MerchantHosted/
+│       └── BaokimMerchantVA.js
 ├── logs/                  # Thư mục log (tự tạo)
 └── your-code.js
 ```
@@ -50,7 +52,7 @@ your-project/
 Mở file `baokim-sdk/config/config.js` và điền thông tin Baokim cung cấp:
 ```javascript
 module.exports = {
-    baseUrl: 'https://devtest.baokim.vn',  // hoặc https://openapi.baokim.vn
+    baseUrl: 'https://devtest.baokim.vn',  // hoặc https://bws.baokim.vn
     timeout: 30000,
     
     merchantCode: 'YOUR_MERCHANT_CODE',
@@ -70,6 +72,12 @@ module.exports = {
     webhookUrl: 'https://your-domain.com/webhook/baokim',
 };
 ```
+
+> [!IMPORTANT]
+> **Lưu ý lên môi trường Production:**
+> - Thay `baseUrl` thành `https://bws.baokim.vn`.
+> - Thay đổi các thông tin `merchantCode`, `clientId`, `clientSecret` sang thông tin môi trường Production do Baokim cung cấp.
+> - Cập nhật cặp RSA Keys (Private Key của Merchant và Public Key của Baokim) tương ứng với môi trường Production.
 
 ### Bước 4: Đặt RSA Keys
 
@@ -107,12 +115,16 @@ const auth = new BaokimAuth();
 ```javascript
 const { Config, BaokimAuth } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-const auth = new BaokimAuth();
-const token = await auth.getToken();
+    const auth = new BaokimAuth();
+    const token = await auth.getToken();
 
-console.log('Token:', token.substring(0, 50) + '...');
+    console.log('Token:', token.substring(0, 50) + '...');
+}
+
+main();
 ```
 
 ```bash
@@ -126,27 +138,31 @@ node 01_get_token.js
 ```javascript
 const { Config, BaokimAuth, BaokimOrder } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-const auth = new BaokimAuth();
-const orderService = new BaokimOrder(await auth.getToken());
+    const auth = new BaokimAuth();
+    const orderService = new BaokimOrder(await auth.getToken());
 
-const mrcOrderId = 'ORDER_' + Date.now();
+    const mrcOrderId = 'ORDER_' + Date.now();
 
-const result = await orderService.createOrder({
-    mrcOrderId: mrcOrderId,
-    totalAmount: 100000,
-    description: 'Thanh toan don hang ' + mrcOrderId,
-    customerInfo: BaokimOrder.buildCustomerInfo(
-        'Nguyen Van A', 'test@email.com', '0901234567', '123 Street'
-    ),
-});
+    const result = await orderService.createOrder({
+        mrcOrderId: mrcOrderId,
+        totalAmount: 100000,
+        description: 'Thanh toan don hang ' + mrcOrderId,
+        customerInfo: BaokimOrder.buildCustomerInfo(
+            'Nguyen Van A', 'test@email.com', '0901234567', '123 Street'
+        ),
+    });
 
-console.log('Success:', result.success);
-if (result.success && result.data.redirect_url) {
-    console.log('Payment URL:', result.data.redirect_url);
+    console.log('Success:', result.success);
+    if (result.success && result.data.redirect_url) {
+        console.log('Payment URL:', result.data.redirect_url);
+    }
+    console.log(result);
 }
-console.log(result);
+
+main();
 ```
 
 ```bash
@@ -160,16 +176,20 @@ node 02_create_order.js
 ```javascript
 const { Config, BaokimAuth, BaokimOrder } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-const auth = new BaokimAuth();
-const orderService = new BaokimOrder(await auth.getToken());
+    const auth = new BaokimAuth();
+    const orderService = new BaokimOrder(await auth.getToken());
 
-const mrcOrderId = process.argv[2] || 'ORDER_TEST';
-const result = await orderService.queryOrder(mrcOrderId);
+    const mrcOrderId = process.argv[2] || 'ORDER_TEST';
+    const result = await orderService.queryOrder(mrcOrderId);
 
-console.log('Success:', result.success);
-console.log(result);
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
 ```
 
 ```bash
@@ -183,18 +203,22 @@ node 03_query_order.js ORDER_20260224120000_1234
 ```javascript
 const { Config, BaokimAuth, BaokimOrder } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-const auth = new BaokimAuth();
-const orderService = new BaokimOrder(await auth.getToken());
+    const auth = new BaokimAuth();
+    const orderService = new BaokimOrder(await auth.getToken());
 
-const mrcOrderId = process.argv[2] || 'ORDER_TEST';
-const refundAmount = parseInt(process.argv[3]) || 0;
+    const mrcOrderId = process.argv[2] || 'ORDER_TEST';
+    const refundAmount = parseInt(process.argv[3]) || 0;
 
-const result = await orderService.refundOrder(mrcOrderId, refundAmount, 'Hoan tien cho khach');
+    const result = await orderService.refundOrder(mrcOrderId, refundAmount, 'Hoan tien cho khach');
 
-console.log('Success:', result.success);
-console.log(result);
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
 ```
 
 ```bash
@@ -208,24 +232,28 @@ node 04_refund_order.js ORDER_ID 50000
 ```javascript
 const { Config, BaokimAuth, BaokimVA } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-const auth = new BaokimAuth();
-const vaService = new BaokimVA(await auth.getToken());
+    const auth = new BaokimAuth();
+    const vaService = new BaokimVA(await auth.getToken());
 
-const orderId = 'VA_' + Date.now();
+    const orderId = 'VA_' + Date.now();
 
-const result = await vaService.createDynamicVA(
-    'NGUYEN VAN A',    // Tên khách hàng
-    orderId,           // Mã đơn hàng
-    100000             // Số tiền
-);
+    const result = await vaService.createDynamicVA(
+        'NGUYEN VAN A',    // Tên khách hàng
+        orderId,           // Mã đơn hàng
+        100000             // Số tiền
+    );
 
-console.log('Success:', result.success);
-if (result.success && result.data.acc_no) {
-    console.log('Số VA:', result.data.acc_no);
+    console.log('Success:', result.success);
+    if (result.success && result.data.acc_no) {
+        console.log('Số VA:', result.data.acc_no);
+    }
+    console.log(result);
 }
-console.log(result);
+
+main();
 ```
 
 ```bash
@@ -239,17 +267,21 @@ node 05_create_va.js
 ```javascript
 const { Config, BaokimAuth, BaokimVA } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-const auth = new BaokimAuth();
-const vaService = new BaokimVA(await auth.getToken());
+    const auth = new BaokimAuth();
+    const vaService = new BaokimVA(await auth.getToken());
 
-const result = await vaService.queryTransaction({
-    accNo: '00812345678901',   // Thay bằng số VA thật từ API 5
-});
+    const result = await vaService.queryTransaction({
+        accNo: '00812345678901',   // Thay bằng số VA thật từ API 5
+    });
 
-console.log('Success:', result.success);
-console.log(result);
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
 ```
 
 ```bash
@@ -265,36 +297,156 @@ node 06_query_va.js
 ```javascript
 const { Config, BaokimAuth, BaokimDirect } = require('./baokim-sdk');
 
-Config.load();
+async function main() {
+    Config.load();
 
-// Direct connection dùng credentials riêng
-const directAuth = BaokimAuth.forDirectConnection();
-const directService = new BaokimDirect(await directAuth.getToken());
+    // Direct connection dùng credentials riêng
+    const directAuth = BaokimAuth.forDirectConnection();
+    const directService = new BaokimDirect(await directAuth.getToken());
 
-const mrcOrderId = 'DRT_' + Date.now();
+    const mrcOrderId = 'DRT_' + Date.now();
 
-const result = await directService.createOrder({
-    mrcOrderId: mrcOrderId,
-    totalAmount: 150000,
-    description: 'Thanh toan Direct ' + mrcOrderId,
-    customerInfo: {
-        name: 'NGUYEN VAN A',
-        email: 'customer@email.com',
-        phone: '0901234567',
-        address: '123 Nguyen Hue, HCM',
-        gender: 1,
-    },
-});
+    const result = await directService.createOrder({
+        mrcOrderId: mrcOrderId,
+        totalAmount: 150000,
+        description: 'Thanh toan Direct ' + mrcOrderId,
+        customerInfo: {
+            name: 'NGUYEN VAN A',
+            email: 'customer@email.com',
+            phone: '0901234567',
+            address: '123 Nguyen Hue, HCM',
+            gender: 1,
+        },
+    });
 
-console.log('Success:', result.success);
-if (result.success && result.data.redirect_url) {
-    console.log('Payment URL:', result.data.redirect_url);
+    console.log('Success:', result.success);
+    if (result.success && result.data.redirect_url) {
+        console.log('Payment URL:', result.data.redirect_url);
+    }
+    console.log(result);
 }
-console.log(result);
+
+main();
 ```
 
 ```bash
 node 07_direct_order.js
+```
+
+---
+
+## 🔷 API 9: Tạo Virtual Account - VA (Merchant Hosted / Direct)
+
+> ⚠️ Merchant Hosted dùng credentials riêng (`directClientId`, `directClientSecret`).
+
+```javascript
+const { Config, BaokimAuth, BaokimMerchantVA } = require('./baokim-sdk');
+
+async function main() {
+    Config.load();
+
+    const directAuth = BaokimAuth.forDirectConnection();
+    const vaService = new BaokimMerchantVA(await directAuth.getToken());
+
+    const orderId = 'MH_VA_' + Date.now();
+
+    const result = await vaService.createDynamicVA(
+        'NGUYEN VAN A',    // Tên khách hàng
+        orderId,           // Mã đơn hàng
+        100000             // Số tiền
+    );
+
+    console.log('Success:', result.success);
+    if (result.success && result.data.acc_no) {
+        console.log('Số VA:', result.data.acc_no);
+    }
+    console.log(result);
+}
+
+main();
+```
+
+### Tạo VA với đầy đủ options
+
+```javascript
+const result = await vaService.createVA({
+    accName: 'NGUYEN VAN A',
+    accType: 1,                    // 1=Dynamic, 2=Static
+    mrcOrderId: 'ORDER_001',
+    collectAmountMin: 100000,      // Required khi accType=1
+    collectAmountMax: 100000,      // Required
+    storeCode: 'STORE_001',        // Optional
+    staffCode: 'STAFF_001',        // Optional
+    bankCode: 'BIDV',              // Optional
+    memo: 'Ghi chú',               // Optional (max 255)
+    expireDate: '2026-12-31 23:59:59', // Required khi accType=2
+});
+```
+
+```bash
+node examples/va_merchant_hosted/08_merchant_create_va.js
+```
+
+---
+
+## 🔷 API 10: Cập nhật VA (Merchant Hosted)
+
+```javascript
+const { Config, BaokimAuth, BaokimMerchantVA } = require('./baokim-sdk');
+
+async function main() {
+    Config.load();
+
+    const directAuth = BaokimAuth.forDirectConnection();
+    const vaService = new BaokimMerchantVA(await directAuth.getToken());
+
+    const result = await vaService.updateVA('ORDER_001', {
+        accName: 'NGUYEN VAN B',            // Optional
+        collectAmountMin: 50000,             // Optional
+        collectAmountMax: 500000,            // Optional
+        expireDate: '2027-06-30 23:59:59',   // Optional
+    });
+
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
+```
+
+```bash
+node examples/va_merchant_hosted/09_merchant_update_va.js ORDER_001
+```
+
+---
+
+## 🔷 API 11: Tra cứu chi tiết VA (Merchant Hosted)
+
+```javascript
+const { Config, BaokimAuth, BaokimMerchantVA } = require('./baokim-sdk');
+
+async function main() {
+    Config.load();
+
+    const directAuth = BaokimAuth.forDirectConnection();
+    const vaService = new BaokimMerchantVA(await directAuth.getToken());
+
+    const result = await vaService.detailVA('00812345678901', {
+        startDate: '2026-01-01 00:00:00',    // Optional
+        endDate: '2026-12-31 23:59:59',      // Optional
+        currentPage: 1,                       // Optional
+        perPage: 20,                          // Optional
+    });
+
+    console.log('Success:', result.success);
+    console.log(result);
+}
+
+main();
+```
+
+```bash
+node examples/va_merchant_hosted/10_merchant_detail_va.js 00812345678901
 ```
 
 ---
@@ -388,6 +540,13 @@ Merchant cần trả về JSON với `code = 0` khi xử lý thành công:
 | Tạo VA | `/b2b/core/api/ext/mm/bank-transfer/create` |
 | Cập nhật VA | `/b2b/core/api/ext/mm/bank-transfer/update` |
 | Tra cứu VA | `/b2b/core/api/ext/mm/bank-transfer/detail` |
+
+### VA Merchant Hosted (Direct)
+| API | Endpoint |
+|-----|----------|
+| Tạo VA | `/b2b/core/api/merchant-hosted/bank-transfer/create` |
+| Cập nhật VA | `/b2b/core/api/merchant-hosted/bank-transfer/update` |
+| Tra cứu VA | `/b2b/core/api/merchant-hosted/bank-transfer/detail` |
 
 ### Direct Connection
 | API | Endpoint |
